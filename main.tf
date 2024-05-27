@@ -120,14 +120,23 @@ resource "aws_eks_addon" "ebs_csi" {
   }
 }
 
-# CloudWatch Log Group
+# CloudWatch Log Group - Check if it exists
+data "aws_cloudwatch_log_group" "existing" {
+  count = 1
+  for_each = {
+    cluster = "/aws/eks/${local.cluster_name}/cluster"
+  }
+
+  name = each.value
+}
+
 resource "aws_cloudwatch_log_group" "this" {
+  count = length(data.aws_cloudwatch_log_group.existing) == 0 ? 1 : 0
   name              = "/aws/eks/${local.cluster_name}/cluster"
   retention_in_days = 30
 
   lifecycle {
     create_before_destroy = true
     prevent_destroy       = true
-    ignore_changes        = all
   }
 }
