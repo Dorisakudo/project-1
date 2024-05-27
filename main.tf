@@ -122,10 +122,12 @@ resource "aws_eks_addon" "ebs_csi" {
 
 # CloudWatch Log Group
 resource "aws_cloudwatch_log_group" "this" {
-  name = "/aws/eks/${local.cluster_name}/cluster"
+  name              = "/aws/eks/${local.cluster_name}/cluster"
   retention_in_days = 30
 
   lifecycle {
-    ignore_changes = all
+    create_before_destroy = true
+    prevent_destroy       = true
+    ignore_changes        = all
   }
 }
