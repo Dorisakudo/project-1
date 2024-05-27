@@ -14,8 +14,6 @@ locals {
   launch_template_name = local.cluster_name
 }
 
-
-
 # Filter out local zones, which are not currently supported with managed node groups
 data "aws_availability_zones" "available" {
   filter {
@@ -93,7 +91,6 @@ module "eks" {
   }
 }
 
-
 # IAM policy for EBS CSI driver
 data "aws_iam_policy" "ebs_csi_policy" {
   arn = "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
@@ -120,5 +117,15 @@ resource "aws_eks_addon" "ebs_csi" {
   tags = {
     "eks_addon" = "ebs-csi"
     "terraform" = "true"
+  }
+}
+
+# CloudWatch Log Group
+resource "aws_cloudwatch_log_group" "this" {
+  name = "/aws/eks/${local.cluster_name}/cluster"
+  retention_in_days = 30
+
+  lifecycle {
+    ignore_changes = all
   }
 }
