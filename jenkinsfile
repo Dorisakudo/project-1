@@ -1,10 +1,10 @@
 pipeline {
     agent { node { label "terraform-node" } } 
     parameters {
-        choice(name: 'deploy_choice', choices:['apply','destroy'], description:'The deployment type')
+        choice(name: 'deploy_choice', choices: ['apply', 'destroy'], description: 'The deployment type')
     }
     environment {
-        EMAIL_TO = 'traliach81@gmail.com'
+        EMAIL_TO = 'dorisakudo09@gmail.com'
     }
     stages {
         stage('Terraform init') {
@@ -23,22 +23,35 @@ pipeline {
             input {
                 message "Should we proceed?"
                 ok "Yes, we should."
-                parameters{
-                    choice (name: 'Manual_Approval', choices: ['Approve','Reject'], description: 'Approve or Reject the deployment')
+                parameters {
+                    choice(name: 'Manual_Approval', choices: ['Approve', 'Reject'], description: 'Approve or Reject the deployment')
                 }
             }
-             steps {
+            steps {
                 echo "Deployment ${Manual_Approval}"
-            }          
+            }
         }
         stage('Terraform Deploy') {              
-            steps { 
-                echo 'Terraform ${params.deploy_choice} phase'           
-                sh "terraform ${params.deploy_choice} --auto-approve"
+            steps {
+                script {
+                    if (params.deploy_choice == 'destroy') {
+                        echo 'Terraform destroy phase'
+                        // Try to destroy and catch errors
+                        try {
+                            sh 'terraform destroy --auto-approve'
+                        } catch (Exception e) {
+                            echo 'Terraform destroy failed, proceeding to apply changes to existing infrastructure.'
+                            sh 'terraform apply --auto-approve'
+                        }
+                    } else {
+                        echo 'Terraform apply phase'
+                        sh 'terraform apply --auto-approve'
+                    }
+                }
             }
-          }
-      }
-      post {
+        }
+    }
+    post {
         failure {
             emailext body: 'Check console output at $BUILD_URL to view the results. \n\n ${CHANGES} \n\n -------------------------------------------------- \n${BUILD_LOG, maxLines=100, escapeHtml=false}', 
                     to: "${EMAIL_TO}", 
@@ -54,5 +67,5 @@ pipeline {
                     to: "${EMAIL_TO}", 
                     subject: 'Jenkins build is back to normal: $PROJECT_NAME - #$BUILD_NUMBER'
         }
-   }
+    }
 }
